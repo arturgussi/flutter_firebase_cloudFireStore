@@ -3,6 +3,46 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../models/listin.dart';
 
+class FirestoreAnalytics {
+  FirebaseFirestore firestore = FirebaseFirestore.instance;
+
+  incrementarAcessosTotais() {
+    _incrementar("acessos_totais");
+  }
+
+  incrementarListasAdicionadas() {
+    _incrementar("listas_adicionadas");
+  }
+
+  incrementarAtualizacoesManuais() {
+    _incrementar("atualizacoes_manuais");
+  }
+
+  _incrementar(String field) async {
+    // Pedir ao firestore a versão atual do documento "geral" na coleção "analytics"
+    DocumentSnapshot<Map<String, dynamic>> snapshot =
+        await firestore.collection("analytics").doc("geral").get();
+
+    // Inicializar um documento que representa nosso documento "geral"
+    Map<String, dynamic> document = {};
+
+    // Preencher nosso documento com os dados existentes (se eles existirem)
+    if (snapshot.data() != null) {
+      document = snapshot.data()!;
+    }
+
+    // Caso o campo que queremos somar tenha dados, somamos, se não inicializamos com o valor 1
+    if (document[field] != null) {
+      document[field] = document[field] + 1;
+    } else {
+      document[field] = 1;
+    }
+
+    // Atualizamos no Firestore
+    firestore.collection("analytics").doc("geral").set(document);
+  }
+}
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -11,11 +51,16 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final List<Listin> listListins = [
-    Listin(id: "L001", name: "Feira de Outubro"),
-    Listin(id: "L002", name: "Feira de Novembro"),
-  ];
+  List<Listin> listListins = [];
   FirebaseFirestore firestore = FirebaseFirestore.instance;
+  FirestoreAnalytics analytics = FirestoreAnalytics();
+
+  @override
+  void initState() {
+    refresh();
+    analytics.incrementarAcessosTotais();
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -78,51 +123,78 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: const EdgeInsets.all(32.0),
 
           // Formulário com Título, Campo e Botões
-          child: ListView(
-            children: [
-              Text(title, style: Theme.of(context).textTheme.headlineSmall),
-              TextFormField(
-                controller: nameController,
-                decoration:
-                    const InputDecoration(label: Text("Nome do Listin")),
-              ),
-              const SizedBox(
-                height: 16,
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    child: Text(skipButton),
-                  ),
-                  const SizedBox(
-                    width: 16,
-                  ),
-                  ElevatedButton(
+          child: RefreshIndicator(
+            onRefresh: () {
+              analytics.incrementarAtualizacoesManuais();
+              return refresh();
+            },
+            child: ListView(
+              children: [
+                Text(title, style: Theme.of(context).textTheme.headlineSmall),
+                TextFormField(
+                  controller: nameController,
+                  decoration:
+                      const InputDecoration(label: Text("Nome do Listin")),
+                ),
+                const SizedBox(
+                  height: 16,
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
                       onPressed: () {
-                        //  Criar o listin com as informacoes
-                        Listin listin = Listin(
-                          id: const Uuid().v1(),
-                          name: nameController.text,
-                        );
-                        // Salvar no firestore
-                        firestore
-                            .collection("listins")
-                            .doc(listin.id)
-                            .set(listin.toMap());
-                        // Fechar o Modal
                         Navigator.pop(context);
                       },
-                      child: Text(confirmationButton)),
-                ],
-              )
-            ],
+                      child: Text(skipButton),
+                    ),
+                    const SizedBox(
+                      width: 16,
+                    ),
+                    ElevatedButton(
+                        onPressed: () {
+                          //  Criar o listin com as informacoes
+                          Listin listin = Listin(
+                            id: const Uuid().v1(),
+                            name: nameController.text,
+                          );
+                          // Salvar no firestore
+                          firestore
+                              .collection("listins")
+                              .doc(listin.id)
+                              .set(listin.toMap());
+                          analytics.incrementarListasAdicionadas();
+
+                          // Atualizar a lista
+                          refresh();
+                          // Fechar o Modal
+                          Navigator.pop(context);
+                        },
+                        child: Text(confirmationButton)),
+                  ],
+                )
+              ],
+            ),
           ),
         );
       },
     );
+  }
+
+  refresh() async {
+    List<Listin> temp = [];
+
+    // Busca dados
+    QuerySnapshot<Map<String, dynamic>> snapshot =
+        await firestore.collection('listins').get();
+
+    // Adiciona em uma lista temporaria listins pegos do firebase
+    for (var doc in snapshot.docs) {
+      temp.add(Listin.fromMap(doc.data()));
+    }
+
+    setState(() {
+      listListins = temp;
+    });
   }
 }
