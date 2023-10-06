@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_firebase_firestore_first/firestore/presentation/home_screen.dart';
 import 'firebase_options.dart';
@@ -12,11 +11,6 @@ void main() async {
   );
 
   runApp(const MyApp());
-
-  // FirebaseFirestore firestore = FirebaseFirestore.instance;
-  // firestore.collection("Teste").doc("Testando").set({
-  //   "Funcionou?": true,
-  // });
 }
 
 class MyApp extends StatelessWidget {
