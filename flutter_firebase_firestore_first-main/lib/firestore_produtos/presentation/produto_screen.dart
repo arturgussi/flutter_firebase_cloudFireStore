@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_firebase_firestore_first/firestore/models/listin.dart';
@@ -22,12 +24,21 @@ class _ProdutoScreenState extends State<ProdutoScreen> {
   FirebaseFirestore firestore = FirebaseFirestore.instance;
 
   OrdemProduto ordem = OrdemProduto.name;
-  bool isDecrescente = false;
+  bool isDecrescent = false;
+
+  late StreamSubscription listener;
 
   @override
   void initState() {
-    refresh();
+    // refresh();
+    setupListeners();
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    listener.cancel();
+    super.dispose();
   }
 
   @override
@@ -56,10 +67,10 @@ class _ProdutoScreenState extends State<ProdutoScreen> {
             onSelected: (value) {
               setState(() {
                 if (ordem == value) {
-                  isDecrescente = !isDecrescente;
+                  isDecrescent = !isDecrescent;
                 } else {
                   ordem = value;
-                  isDecrescente = false;
+                  isDecrescent = false;
                 }
                 refresh();
               });
@@ -278,7 +289,7 @@ class _ProdutoScreenState extends State<ProdutoScreen> {
                           .set(produto.toMap());
 
                       // Atualizar a lista
-                      refresh();
+                      // refresh();
 
                       // Fechar o Modal
                       Navigator.pop(context);
@@ -294,15 +305,16 @@ class _ProdutoScreenState extends State<ProdutoScreen> {
     );
   }
 
-  refresh() async {
+  refresh({QuerySnapshot<Map<String, dynamic>>? snapshot}) async {
     List<Produto> temp = [];
 
-    QuerySnapshot<Map<String, dynamic>> snapshot = await firestore
+    // QuerySnapshot<Map<String, dynamic>> snapshot = await firestore
+    snapshot ??= await firestore
         .collection('listins')
         .doc(widget.listin.id)
         .collection('produtos')
         // .where('isComprado', isEqualTo: isComprado)
-        .orderBy(ordem.name, descending: isDecrescente)
+        .orderBy(ordem.name, descending: isDecrescent)
         .get();
 
     for (var doc in snapshot.docs) {
@@ -341,6 +353,18 @@ class _ProdutoScreenState extends State<ProdutoScreen> {
         .doc(produto.id)
         .update({'isComprado': produto.isComprado});
 
-    refresh();
+    // refresh();
+  }
+
+  setupListeners() {
+    listener = firestore
+        .collection('listins')
+        .doc(widget.listin.id)
+        .collection('produtos')
+        .orderBy(ordem.name, descending: isDecrescent)
+        .snapshots()
+        .listen((snapshot) {
+      refresh(snapshot: snapshot);
+    });
   }
 }
