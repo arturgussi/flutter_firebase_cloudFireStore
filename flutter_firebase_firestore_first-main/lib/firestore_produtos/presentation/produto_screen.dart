@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_firebase_firestore_first/firestore/models/listin.dart';
 import 'package:flutter_firebase_firestore_first/firestore_produtos/helpers/enum_ordem.dart';
 import 'package:flutter_firebase_firestore_first/firestore_produtos/model/produto.dart';
+import 'package:flutter_firebase_firestore_first/firestore_produtos/services/produto_service.dart';
 import 'package:uuid/uuid.dart';
 import 'widgets/list_tile_produto.dart';
 
@@ -21,7 +22,7 @@ class _ProdutoScreenState extends State<ProdutoScreen> {
 
   List<Produto> listaProdutosPegos = [];
 
-  FirebaseFirestore firestore = FirebaseFirestore.instance;
+  ProdutoService produtoService = ProdutoService();
 
   OrdemProduto ordem = OrdemProduto.name;
   bool isDecrescent = false;
@@ -283,12 +284,10 @@ class _ProdutoScreenState extends State<ProdutoScreen> {
                       }
 
                       // Salvar na firestore
-                      firestore
-                          .collection('listins')
-                          .doc(widget.listin.id)
-                          .collection('produtos')
-                          .doc(produto.id)
-                          .set(produto.toMap());
+                      produtoService.adicionarProduto(
+                        listinId: widget.listin.id,
+                        produto: produto,
+                      );
 
                       // Atualizar a lista
                       // refresh();
@@ -307,29 +306,25 @@ class _ProdutoScreenState extends State<ProdutoScreen> {
     );
   }
 
-  refresh({QuerySnapshot<Map<String, dynamic>>? snapshot}) async {
-    List<Produto> temp = [];
+  refresh({
+    QuerySnapshot<Map<String, dynamic>>? snapshot,
+  }) async {
+    List<Produto> produtosLidos = await produtoService.lerProdutos(
+      listinId: widget.listin.id,
+      ordemProduto: ordem,
+      isDecrescent: isDecrescent,
+    );
 
-    // QuerySnapshot<Map<String, dynamic>> snapshot = await firestore
-    snapshot ??= await firestore
-        .collection('listins')
-        .doc(widget.listin.id)
-        .collection('produtos')
-        // .where('isComprado', isEqualTo: isComprado)
-        .orderBy(ordem.name, descending: isDecrescent)
-        .get();
-
-    verificarAlteracoes(snapshot);
-
-    for (var doc in snapshot.docs) {
-      Produto produto = Produto.fromMap(doc.data());
-      temp.add(produto);
+    if (snapshot != null) {
+      verificarAlteracoes(snapshot);
     }
 
-    filtrarProdutos(temp);
+    filtrarProdutos(produtosLidos);
   }
 
-  filtrarProdutos(List<Produto> listaProdutos) {
+  filtrarProdutos(
+    List<Produto> listaProdutos,
+  ) {
     List<Produto> tempPegos = [];
     List<Produto> tempPlanejados = [];
 
@@ -347,29 +342,25 @@ class _ProdutoScreenState extends State<ProdutoScreen> {
     });
   }
 
-  alternarComprado(Produto produto) async {
+  alternarComprado(
+    Produto produto,
+  ) async {
     produto.isComprado = !produto.isComprado;
 
-    firestore
-        .collection('listins')
-        .doc(widget.listin.id)
-        .collection('produtos')
-        .doc(produto.id)
-        .update({'isComprado': produto.isComprado});
-
+    await produtoService.alternarProduto(
+      listinId: widget.listin.id,
+      produto: produto,
+    );
     // refresh();
   }
 
   setupListeners() {
-    listener = firestore
-        .collection('listins')
-        .doc(widget.listin.id)
-        .collection('produtos')
-        .orderBy(ordem.name, descending: isDecrescent)
-        .snapshots()
-        .listen((snapshot) {
-      refresh(snapshot: snapshot);
-    });
+    listener = produtoService.conectarStreamProdutos(
+      listinId: widget.listin.id,
+      ordemProduto: ordem,
+      isDecrescent: isDecrescent,
+      refresh: refresh,
+    );
   }
 
   verificarAlteracoes(QuerySnapshot<Map<String, dynamic>> snapshot) {
@@ -405,12 +396,10 @@ class _ProdutoScreenState extends State<ProdutoScreen> {
   }
 
   removerProduto(produto) async {
-    await firestore
-        .collection('listins')
-        .doc(widget.listin.id)
-        .collection('produtos')
-        .doc(produto.id)
-        .delete();
+    produtoService.removerProduto(
+      listinId: widget.listin.id,
+      produto: produto,
+    );
   }
 
   double calcularPrecoPegos() {
