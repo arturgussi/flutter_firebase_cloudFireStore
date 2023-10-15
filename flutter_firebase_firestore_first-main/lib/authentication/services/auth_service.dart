@@ -21,6 +21,8 @@ class AuthService {
           return "O e-mail não está cadastrado";
         case "wrong-password":
           return "Senha incorreta";
+        case "invalid-login-credentials":
+          return "Usuário ou senha incorretos";
       }
       return e.code;
     }
@@ -64,6 +66,27 @@ class AuthService {
       return e.code;
     }
 
+    return null;
+  }
+
+  Future<String?> deslogar() async {
+    try {
+      await _firebaseAuth.signOut();
+    } on FirebaseAuthException catch (e) {
+      return e.code;
+    }
+    return null;
+  }
+
+  Future<String?> removerConta({required String senha}) async {
+    try {
+      await _firebaseAuth.signInWithEmailAndPassword(
+          email: _firebaseAuth.currentUser!.email!, password: senha);
+
+      await _firebaseAuth.currentUser!.delete();
+    } on FirebaseAuthException catch (e) {
+      return e.code;
+    }
     return null;
   }
 }

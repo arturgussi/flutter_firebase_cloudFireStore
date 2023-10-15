@@ -7,7 +7,7 @@ showSnackBar({
 }) {
   SnackBar snackBar = SnackBar(
     content: Text(text),
-    backgroundColor: isErro ? Colors.green : Colors.red,
+    backgroundColor: isErro ? Colors.red : Colors.green,
   );
 
   ScaffoldMessenger.of(context).showSnackBar(snackBar);

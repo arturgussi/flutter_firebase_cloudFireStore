@@ -235,12 +235,9 @@ class _AuthScreenState extends State<AuthScreen> {
     required String senha,
   }) {
     authService.entrarUsuario(email: email, senha: senha).then((erro) {
-      if (erro == null) {
-        showSnackBar(
-            context: context, text: "Conta logada com sucesso", isErro: false);
-      } else {
+      if (erro != null) {
         showSnackBar(context: context, text: erro, isErro: true);
-      }
+      } else {}
     });
   }
 
@@ -252,14 +249,9 @@ class _AuthScreenState extends State<AuthScreen> {
     authService
         .cadastrarUsuario(email: email, senha: senha, nome: nome)
         .then((String? erro) {
-      if (erro == null) {
-        showSnackBar(
-            context: context,
-            text: "E-mail cadastrado com sucesso",
-            isErro: false);
-      } else {
+      if (erro != null) {
         showSnackBar(context: context, text: erro, isErro: true);
-      }
+      } else {}
     });
   }
 }
