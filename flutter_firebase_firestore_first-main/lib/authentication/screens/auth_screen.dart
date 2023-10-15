@@ -92,6 +92,14 @@ class _AuthScreenState extends State<AuthScreen> {
                         return null;
                       },
                     ),
+                    Visibility(
+                      visible: isEntrando,
+                      child: TextButton(
+                          onPressed: () {
+                            esqueciMinhaSenhaClicado();
+                          },
+                          child: const Text("Esqueci minha senha")),
+                    ),
                     Padding(
                       padding: const EdgeInsets.all(8.0),
                       child: Visibility(
@@ -165,6 +173,49 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
+  esqueciMinhaSenhaClicado() {
+    String email = _emailController.text;
+
+    showDialog(
+        context: context,
+        builder: (context) {
+          TextEditingController redefinicaoSenhaController =
+              TextEditingController(text: email);
+
+          return AlertDialog(
+            title: const Text('Confirme o e-mail para redefinição de senha'),
+            content: TextFormField(
+              controller: redefinicaoSenhaController,
+              decoration:
+                  const InputDecoration(label: Text('Confirme o e-mail')),
+            ),
+            shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(32))),
+            actions: [
+              TextButton(
+                  onPressed: () {
+                    authService
+                        .redefinicaoSenha(
+                            email: redefinicaoSenhaController.text)
+                        .then((String? erro) {
+                      if (erro == null) {
+                        showSnackBar(
+                            context: context,
+                            text: "E-mail de redefinição enviado",
+                            isErro: false);
+                      } else {
+                        showSnackBar(
+                            context: context, text: erro, isErro: true);
+                      }
+                      Navigator.pop(context);
+                    });
+                  },
+                  child: const Text("Redefinir Senha"))
+            ],
+          );
+        });
+  }
+
   botaoEnviarClicado() {
     String email = _emailController.text;
     String senha = _senhaController.text;
@@ -183,10 +234,14 @@ class _AuthScreenState extends State<AuthScreen> {
     required String email,
     required String senha,
   }) {
-    authService.entrarUsuario(
-      email: email,
-      senha: senha,
-    );
+    authService.entrarUsuario(email: email, senha: senha).then((erro) {
+      if (erro == null) {
+        showSnackBar(
+            context: context, text: "Conta logada com sucesso", isErro: false);
+      } else {
+        showSnackBar(context: context, text: erro, isErro: true);
+      }
+    });
   }
 
   _criarUsuario({

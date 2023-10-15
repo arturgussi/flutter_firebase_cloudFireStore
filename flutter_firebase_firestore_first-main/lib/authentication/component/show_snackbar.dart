@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 showSnackBar({
   required BuildContext context,
   required String text,
-  bool isErro = false,
+  required bool isErro,
 }) {
   SnackBar snackBar = SnackBar(
     content: Text(text),
