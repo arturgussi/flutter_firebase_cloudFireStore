@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_firebase_firestore_first/_core/my_colors.dart';
+import 'package:flutter_firebase_firestore_first/authentication/component/show_snackbar.dart';
+import 'package:flutter_firebase_firestore_first/authentication/services/auth_service.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -17,6 +19,8 @@ class _AuthScreenState extends State<AuthScreen> {
   bool isEntrando = true;
 
   final _formKey = GlobalKey<FormState>();
+
+  AuthService authService = AuthService();
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +44,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Image.network(
-                      "https://github.com/ricarthlima/listin_assetws/raw/main/logo-icon.png",
+                      "https://raw.githubusercontent.com/ricarthlima/listin_assetws/main/logo-icon.png",
                       height: 64,
                     ),
                     Padding(
@@ -175,12 +179,32 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
-  _entrarUsuario({required String email, required String senha}) {
-    print("Entrar usuário $email, $senha");
+  _entrarUsuario({
+    required String email,
+    required String senha,
+  }) {
+    authService.entrarUsuario(
+      email: email,
+      senha: senha,
+    );
   }
 
-  _criarUsuario(
-      {required String email, required String senha, required String nome}) {
-    print("Criar usuário $email, $senha, $nome");
+  _criarUsuario({
+    required String email,
+    required String senha,
+    required String nome,
+  }) {
+    authService
+        .cadastrarUsuario(email: email, senha: senha, nome: nome)
+        .then((String? erro) {
+      if (erro == null) {
+        showSnackBar(
+            context: context,
+            text: "E-mail cadastrado com sucesso",
+            isErro: false);
+      } else {
+        showSnackBar(context: context, text: erro, isErro: true);
+      }
+    });
   }
 }
